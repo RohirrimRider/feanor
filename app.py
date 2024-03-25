@@ -50,6 +50,27 @@ async def player_api(
     )
 
 
+async def _reverse_proxy(request: Request):
+    url = httpx.URL(path=request.url.path, query=request.url.query.encode("utf-8"))
+    rp_req = proxy_client.build_request(
+        request.method, url, headers=request.headers.raw, content=await request.body()
+    )
+    rp_resp = await proxy_client.send(rp_req, stream=True)
+    return StreamingResponse(
+        rp_resp.aiter_raw(),
+        status_code=rp_resp.status_code,
+        headers=rp_resp.headers,
+        background=BackgroundTask(rp_resp.aclose),
+    )
+
+
+app.add_route(
+    "/{path:path}",
+    _reverse_proxy,
+    methods=["GET", "OPTIONS", "HEAD"],
+)
+
+
 async def get_live_streams(
     username: str, password: str, category_id: str
 ) -> list[xtream.LiveStream]:
