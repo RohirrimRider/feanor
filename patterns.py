@@ -51,7 +51,7 @@ all = [
         include=lambda ch: bool(re.search(r"ESPN \(East Server\)", ch.name)),
         exclude=lambda ch: False,
         overrides={
-            IPTVAttr.GROUP_TITLE.value: "Sports",
+            IPTVAttr.GROUP_TITLE.value: "Sports Networks",
             "name": "ESPN",
         },
     ),
