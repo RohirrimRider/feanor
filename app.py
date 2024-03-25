@@ -29,10 +29,11 @@ async def player_api(
     username: str = Query(..., description="Username"),
     password: str = Query(..., description="Password"),
     action: str = Query(..., description="Action"),
+    category_id: str = Query("", description="Action"),
 ):
     match action:
         case "get_live_streams":
-            return await get_live_streams(username, password)
+            return await get_live_streams(username, password, category_id)
         case "get_live_categories":
             return await get_live_categories(username, password)
 
@@ -49,13 +50,17 @@ async def player_api(
     )
 
 
-async def get_live_streams(username: str, password: str) -> list[xtream.LiveStream]:
+async def get_live_streams(
+    username: str, password: str, category_id: str
+) -> list[xtream.LiveStream]:
     categories = await get_all_live_categories(username, password)
-    mapped: list[xtream.LiveStream] = []
+    streames: list[xtream.LiveStream] = []
     async for stream in get_all_live_streams(username, password):
+        if category_id and stream.category_id != category_id:
+            continue
         if ch := test_filters(stream, categories):
-            mapped.append(ch)
-    return mapped
+            streames.append(ch)
+    return streames
 
 
 async def get_live_categories(username: str, password: str) -> list[xtream.Category]:
