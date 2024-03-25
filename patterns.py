@@ -105,26 +105,26 @@ all = [
     # NBA
     Pattern(
         name="NBA",
-        include=lambda ch, cat: (cat.category_name == "NBA" and "NBA: " in ch.name),
-        exclude=lambda ch, cat: "GAMES ONLY" in ch.name,
+        include=lambda ch, cat: cat.category_name == "NBA",
+        exclude=lambda ch, cat: "GAMES ONLY" in ch.name or not ch.name.startswith("NBA: "),
     ),
     # NHL
     Pattern(
         name="NHL",
         include=lambda ch, cat: (bool(re.search(r"^NHL: ", ch.name, re.IGNORECASE))),
-        exclude=lambda ch, cat: False,
+        exclude=lambda ch, cat: ch.name.startswith("ECHL"),
     ),
     # MLB
     Pattern(
         name="MLB",
-        include=lambda ch, cat: (cat.category_name == "MLB" and ch.name.startswith("MLB:")),
-        exclude=lambda ch, cat: False,
+        include=lambda ch, cat: (cat.category_name == "MLB"),
+        exclude=lambda ch, cat: not ch.name.startswith("MLB:"),
     ),
     # NFL
     Pattern(
         name="NFL",
-        include=lambda ch, cat: (cat.category_name == "NFL Teams" and "HD" in ch.name),
-        exclude=lambda ch, cat: False,
+        include=lambda ch, cat: cat.category_name == "NFL Teams",
+        exclude=lambda ch, cat: "HD" not in ch.name,
     ),
     # ESPN Play US
     Pattern(
