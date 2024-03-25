@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir poetry
 RUN poetry config virtualenvs.create false
 RUN poetry install --no-dev
 
-COPY app.py run.py vars.py patterns.py /app
+COPY *.py /app
 
 ENTRYPOINT ["poetry", "run", "python3"]
 CMD ["run.py"]
