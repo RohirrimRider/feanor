@@ -4,7 +4,6 @@ from pydantic import BaseModel
 class LiveStream(BaseModel):
     num: int
     name: str
-    url: str = ""
     stream_type: str = ""
     stream_icon: str = ""
     epg_channel_id: str | None = ""
