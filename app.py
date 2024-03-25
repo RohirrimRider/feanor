@@ -1,9 +1,9 @@
 import os
 import re
-from typing import AsyncGenerator, Literal, Union
+from typing import AsyncGenerator
 
 import httpx
-from fastapi import FastAPI, Query, Request, Response
+from fastapi import FastAPI, Query, Request
 from starlette.background import BackgroundTask
 from starlette.responses import StreamingResponse
 
@@ -23,19 +23,30 @@ proxy_client = httpx.AsyncClient(base_url=BASE_URL)
 NONE_CATEGORY = xtream.Category(category_id="", category_name="", parent_id=0)
 
 
-@app.get("/player_api.php", response_model=Union[list[xtream.LiveStream], list[xtream.Category]])
+@app.get("/player_api.php")
 async def player_api(
+    request: Request,
     username: str = Query(..., description="Username"),
     password: str = Query(..., description="Password"),
-    action: Literal["get_live_streams", "get_live_categories"] = Query(..., description="Action"),
+    action: str = Query(..., description="Action"),
 ):
     match action:
         case "get_live_streams":
             return await get_live_streams(username, password)
         case "get_live_categories":
             return await get_live_categories(username, password)
-        case _:
-            return Response(content="Unknown action", status_code=400)
+
+    url = httpx.URL(path=request.url.path, query=request.url.query.encode("utf-8"))
+    rp_req = proxy_client.build_request(
+        request.method, url, headers=request.headers.raw, content=await request.body()
+    )
+    rp_resp = await proxy_client.send(rp_req, stream=True)
+    return StreamingResponse(
+        rp_resp.aiter_raw(),
+        status_code=rp_resp.status_code,
+        headers=rp_resp.headers,
+        background=BackgroundTask(rp_resp.aclose),
+    )
 
 
 async def get_live_streams(username: str, password: str) -> list[xtream.LiveStream]:
@@ -89,23 +100,6 @@ async def get_all_live_streams(
         yield xtream.LiveStream.model_validate(x)
 
 
-async def _reverse_proxy(request: Request):
-    url = httpx.URL(path=request.url.path, query=request.url.query.encode("utf-8"))
-    rp_req = proxy_client.build_request(
-        request.method, url, headers=request.headers.raw, content=await request.body()
-    )
-    rp_resp = await proxy_client.send(rp_req, stream=True)
-    return StreamingResponse(
-        rp_resp.aiter_raw(),
-        status_code=rp_resp.status_code,
-        headers=rp_resp.headers,
-        background=BackgroundTask(rp_resp.aclose),
-    )
-
-
-app.add_route(path="/{path:path}", methods=["GET", "POST"], route=_reverse_proxy)
-
-
 def test_filters(
     stream: xtream.LiveStream, categories: list[xtream.Category]
 ) -> xtream.LiveStream | None:
@@ -113,6 +107,5 @@ def test_filters(
         category = next((c for c in categories if c.category_id == stream.category_id), None)
         ch = pattern.test(stream, category or NONE_CATEGORY)
         if ch is None:
-            print(f"Excluded {stream} because of '{pattern.name}'")
             return None
     return stream
