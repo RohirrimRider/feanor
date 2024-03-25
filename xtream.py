@@ -6,6 +6,7 @@ class LiveStream(BaseModel):
     name: str
     stream_type: str = ""
     stream_icon: str = ""
+    stream_id: int
     epg_channel_id: str | None = ""
     added: str = ""
     category_id: str = ""
